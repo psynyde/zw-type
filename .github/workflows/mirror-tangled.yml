@@ -1,0 +1,37 @@
+name: Mirror to Tangled
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - '*'
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    name: Mirror to Tangled 🧶
+    if: ${{ github.repository == 'psynyde/zw-type' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure SSH 🔑
+        env:
+          TANGLED_SSH_KEY: ${{ secrets.TANGLED_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$TANGLED_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -t ed25519 tangled.org >> ~/.ssh/known_hosts
+
+      - name: Push to Tangled ⬆️
+        run: |
+          git remote add tangled git@tangled.org:psynyde.bsky.social/zw-type
+          git push tangled master --force
+          git push tangled --tags --force
