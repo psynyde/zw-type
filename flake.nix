@@ -16,46 +16,51 @@
         env = zig2nix.outputs.zig-env.${system} { zig = zig2nix.outputs.packages.${system}.zig-latest; };
         pkgs = env.pkgs;
         project = "zw-type";
+        mkPackage =
+          {
+            optimize ? "ReleaseSafe",
+          }:
+          env.package rec {
+            pname = project;
+            src = ./.;
+
+            nativeBuildInputs = with pkgs; [
+              scdoc
+              pkg-config
+              wayland-scanner
+            ];
+
+            buildInputs = with pkgs; [
+              wayland
+              wayland-protocols
+            ];
+
+            zigWrapperLibs = buildInputs;
+
+            zigBuildZonLock = ./build.zig.zon2json-lock;
+
+            zigBuildFlags = [ "-Doptimize=${optimize}" ];
+
+            postBuild = ''
+              scdoc < zw-type.1.scd > zw-type.1
+            '';
+
+            postInstall = ''
+              install -Dm644 zw-type.1 -t $out/share/man/man1
+            '';
+
+            meta = with pkgs.lib; {
+              mainProgram = project;
+              description = "IME typing tool for Wayland in zig";
+              homepage = "https://github.com/psynyde/${project}";
+              license = licenses.bsd2;
+              maintainers = with maintainers; [ psynyde ];
+              platforms = platforms.linux;
+            };
+          };
       in
       {
-        packages.default = env.package rec {
-          pname = project;
-          src = ./.;
-
-          nativeBuildInputs = with pkgs; [
-            scdoc
-            pkg-config
-            wayland-scanner
-          ];
-
-          buildInputs = with pkgs; [
-            wayland
-            wayland-protocols
-          ];
-
-          zigWrapperLibs = buildInputs;
-
-          zigBuildZonLock = ./build.zig.zon2json-lock;
-
-          zigBuildFlags = [ "-Doptimize=ReleaseFast" ];
-
-          postBuild = ''
-            scdoc < zw-type.1.scd > zw-type.1
-          '';
-
-          postInstall = ''
-            install -Dm644 zw-type.1 -t $out/share/man/man1
-          '';
-
-          meta = with pkgs.lib; {
-            mainProgram = project;
-            description = "IME typing tool for Wayland in zig";
-            homepage = "https://github.com/psynyde/${project}";
-            license = licenses.bsd2;
-            maintainers = with maintainers; [ psynyde ];
-            platforms = platforms.linux;
-          };
-        };
+        packages.default = pkgs.lib.makeOverridable mkPackage { };
 
         devShells.default = env.mkShell {
           name = project;
