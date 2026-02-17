@@ -1,0 +1,8 @@
+{
+  "wayland-0.5.0-dev-lQa1kv_ZAQCZfnVZMocokZ78QJbH6NaM5RUC9ODQPhx5": {
+    "name": "wayland",
+    "url": "git+https://github.com/ifreund/zig-wayland.git#e57368ecbda85d564362779b253b744260a4b053",
+    "hash": "sha256-DwBIY4v6jZ7YhCRFvYujRmpIVtO9hSSpIbESpl6hbIU=",
+    "rev": "e57368ecbda85d564362779b253b744260a4b053"
+  }
+}
