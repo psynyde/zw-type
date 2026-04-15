@@ -269,10 +269,33 @@ pub fn main() !void {
     if (client.ime_unavailable)
         return error.ImeUnavailable;
 
-    ime.commitString(c_text);
-    ime.commit(client.serial);
+    const max_chunk_size = 4000;
+    var offset: usize = 0;
 
-    _ = display.roundtrip();
+    while (offset < text.len) {
+        var end = @min(offset + max_chunk_size, text.len);
+
+        // NOTE: Adjust 'end' to avoid splitting a UTF-8 multibyte character.
+        // A continuation byte in UTF-8 starts with 10xxxxxx (0x80 to 0xBF).
+        // (byte & 0xC0) == 0x80 checks for this exactly.
+
+        if (end < text.len) {
+            while (end > offset and (text[end] & 0xC0) == 0x80) {
+                end -= 1;
+            }
+        }
+
+        const chunk = text[offset..end];
+        const c_chunk = try allocator.dupeZ(u8, chunk);
+        defer allocator.free(c_chunk);
+
+        ime.commitString(c_chunk);
+        ime.commit(client.serial);
+
+        _ = display.roundtrip();
+
+        offset = end;
+    }
 
     ime.destroy();
     input_manager.destroy();
