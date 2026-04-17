@@ -22,12 +22,12 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
             .strip = true,
+            .link_libc = true,
         }),
     });
 
-    exe.linkLibC();
     exe.root_module.addImport("wayland", wayland);
-    exe.linkSystemLibrary("wayland-client");
+    exe.root_module.linkSystemLibrary("wayland-client", .{});
 
     b.installArtifact(exe);
     const run_step = b.step("run", "Run the program");

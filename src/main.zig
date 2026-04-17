@@ -27,23 +27,24 @@ const Options = struct {
     show_help: bool = false,
     list_seats: bool = false,
     seat_name: ?[]const u8 = null,
+    text: ?[]const u8 = null,
 };
 
-fn parseOptions(allocator: std.mem.Allocator) !Options {
+fn parseOptions(args: []const []const u8) !Options {
     var opts = Options{};
-    var it = try std.process.argsWithAllocator(allocator);
-    defer it.deinit();
-
-    _ = it.next(); // argv[0]
-
-    while (it.next()) |arg| {
+    var i: usize = 1; // skip argv[0]
+    while (i < args.len) : (i += 1) {
+        const arg = args[i];
         if (std.mem.eql(u8, arg, "-h") or std.mem.eql(u8, arg, "--help")) {
             opts.show_help = true;
         } else if (std.mem.eql(u8, arg, "--list-seats")) {
             opts.list_seats = true;
         } else if (std.mem.eql(u8, arg, "-s") or std.mem.eql(u8, arg, "--seat")) {
-            opts.seat_name = it.next() orelse return error.MissingSeatName;
+            i += 1;
+            if (i >= args.len) return error.MissingSeatName;
+            opts.seat_name = args[i];
         } else {
+            opts.text = arg;
             break;
         }
     }
@@ -159,21 +160,17 @@ fn selectSeat(
     return error.SeatNotFound;
 }
 
-fn readInput(allocator: std.mem.Allocator) ![]u8 {
-    const args = try std.process.argsAlloc(allocator);
-    defer std.process.argsFree(allocator, args);
-
-    if (args.len > 1) {
-        return allocator.dupe(u8, args[args.len - 1]);
+fn readInput(allocator: std.mem.Allocator, io: std.Io, opts: Options) ![]u8 {
+    if (opts.text) |text| {
+        return allocator.dupe(u8, text);
     }
 
-    const stdin_file = std.fs.File.stdin();
-    if (!stdin_file.isTty()) {
-        var buf: [4096]u8 = undefined;
-        var reader = stdin_file.reader(&buf);
-        var iface = &reader.interface;
+    if (!try std.Io.File.isTty(.stdin(), io)) {
+        var stdin_buffer: [4096]u8 = undefined;
+        var stdin_file_reader: std.Io.File.Reader = .init(.stdin(), io, &stdin_buffer);
+        const stdin_reader = &stdin_file_reader.interface;
 
-        const text = try iface.allocRemaining(allocator, .unlimited);
+        const text = try stdin_reader.allocRemaining(allocator, .unlimited);
         if (text.len == 0)
             return error.EmptyInput;
 
@@ -182,21 +179,28 @@ fn readInput(allocator: std.mem.Allocator) ![]u8 {
     return error.NoInputProvided;
 }
 
-var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
-pub fn main() !void {
-    const allocator = comptime alloc: {
-        if (builtin.mode == .Debug or builtin.mode == .ReleaseSafe) break :alloc debug_allocator.allocator();
-        break :alloc std.heap.smp_allocator;
+pub fn main(init: std.process.Init.Minimal) !void {
+    var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
+    const allocator, const is_debug = gpa: {
+        break :gpa switch (builtin.mode) {
+            .Debug, .ReleaseSafe => .{ debug_allocator.allocator(), true },
+            .ReleaseFast, .ReleaseSmall => .{ std.heap.smp_allocator, false },
+        };
     };
-    defer if (builtin.mode == .Debug or builtin.mode == .ReleaseSafe) {
+    defer if (is_debug) {
         _ = debug_allocator.deinit();
     };
 
-    var stdout_buffer: [1024]u8 = undefined;
-    var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
-    const stdout = &stdout_writer.interface;
+    var threaded: std.Io.Threaded = .init(allocator, .{});
+    defer threaded.deinit();
+    const io = threaded.io();
 
-    const opts = try parseOptions(allocator);
+    const args = try init.args.toSlice(allocator);
+    const opts = try parseOptions(args);
+
+    var stdout_buffer: [1024]u8 = undefined;
+    var stdout_file_writer: std.Io.File.Writer = .init(.stdout(), io, &stdout_buffer);
+    const stdout = &stdout_file_writer.interface;
 
     const display = try wl.Display.connect(null);
     defer display.disconnect();
@@ -208,11 +212,6 @@ pub fn main() !void {
         .allocator = allocator,
         .seats = .empty,
     };
-    defer {
-        for (client.seats.items) |s|
-            allocator.free(s.name);
-        client.seats.deinit(allocator);
-    }
 
     registry.setListener(*Client, registryListener, &client);
 
@@ -234,7 +233,7 @@ pub fn main() !void {
         return;
     }
 
-    const text = readInput(allocator) catch |err| {
+    const text = readInput(allocator, io, opts) catch |err| {
         switch (err) {
             error.NoInputProvided => {
                 try printHelp(stdout);
@@ -243,10 +242,6 @@ pub fn main() !void {
             else => return err,
         }
     };
-    defer allocator.free(text);
-
-    const c_text = try allocator.dupeZ(u8, text);
-    defer allocator.free(c_text);
 
     const seat = try selectSeat(client.seats.items, opts.seat_name);
 
@@ -286,8 +281,7 @@ pub fn main() !void {
         }
 
         const chunk = text[offset..end];
-        const c_chunk = try allocator.dupeZ(u8, chunk);
-        defer allocator.free(c_chunk);
+        const c_chunk = try allocator.dupeSentinel(u8, chunk, 0);
 
         ime.commitString(c_chunk);
         ime.commit(client.serial);
