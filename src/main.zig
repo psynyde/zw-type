@@ -179,6 +179,30 @@ fn readInput(allocator: std.mem.Allocator, io: std.Io, opts: Options) ![]u8 {
     return error.NoInputProvided;
 }
 
+fn findSplitOffset(text: []const u8, start: usize, max_size: usize) usize {
+    std.debug.assert(max_size > 0);
+    var end = @min(start + max_size, text.len);
+
+    // NOTE: Adjust 'end' to avoid splitting a UTF-8 multibyte character.
+    // A continuation byte in UTF-8 starts with 10xxxxxx (0x80 to 0xBF).
+    // (byte & 0xC0) == 0x80 checks for this exactly.
+    if (end < text.len) {
+        while (end > start and (text[end] & 0xC0) == 0x80) {
+            end -= 1;
+        }
+    }
+
+    // Ensure we always make progress if there's text left
+    if (end == start and start < text.len) {
+        end = start + 1;
+        while (end < text.len and (text[end] & 0xC0) == 0x80) {
+            end += 1;
+        }
+    }
+
+    return end;
+}
+
 pub fn main(init: std.process.Init.Minimal) !void {
     var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
     const allocator, const is_debug = gpa: {
@@ -268,18 +292,7 @@ pub fn main(init: std.process.Init.Minimal) !void {
     var offset: usize = 0;
 
     while (offset < text.len) {
-        var end = @min(offset + max_chunk_size, text.len);
-
-        // NOTE: Adjust 'end' to avoid splitting a UTF-8 multibyte character.
-        // A continuation byte in UTF-8 starts with 10xxxxxx (0x80 to 0xBF).
-        // (byte & 0xC0) == 0x80 checks for this exactly.
-
-        if (end < text.len) {
-            while (end > offset and (text[end] & 0xC0) == 0x80) {
-                end -= 1;
-            }
-        }
-
+        const end = findSplitOffset(text, offset, max_chunk_size);
         const chunk = text[offset..end];
         const c_chunk = try allocator.dupeSentinel(u8, chunk, 0);
 
@@ -293,4 +306,101 @@ pub fn main(init: std.process.Init.Minimal) !void {
 
     ime.destroy();
     input_manager.destroy();
+}
+
+test "parseOptions" {
+    const testing = std.testing;
+
+    {
+        const args = &[_][]const u8{ "zw-type", "-h" };
+        const opts = try parseOptions(args);
+        try testing.expect(opts.show_help);
+    }
+
+    {
+        const args = &[_][]const u8{ "zw-type", "--list-seats" };
+        const opts = try parseOptions(args);
+        try testing.expect(opts.list_seats);
+    }
+
+    {
+        const args = &[_][]const u8{ "zw-type", "-s", "default", "hello" };
+        const opts = try parseOptions(args);
+        try testing.expectEqualStrings("default", opts.seat_name.?);
+        try testing.expectEqualStrings("hello", opts.text.?);
+    }
+
+    {
+        const args = &[_][]const u8{ "zw-type", "hello" };
+        const opts = try parseOptions(args);
+        try testing.expectEqualStrings("hello", opts.text.?);
+    }
+
+    {
+        const args = &[_][]const u8{ "zw-type", "-s" };
+        try testing.expectError(error.MissingSeatName, parseOptions(args));
+    }
+}
+
+test "selectSeat" {
+    const testing = std.testing;
+
+    var s1: u8 = 0;
+    var s2: u8 = 0;
+    const p1: *wl.Seat = @ptrCast(&s1);
+    const p2: *wl.Seat = @ptrCast(&s2);
+
+    const seats = [_]SeatInfo{
+        .{ .name = "seat1", .seat = p1 },
+        .{ .name = "seat2", .seat = p2 },
+    };
+
+    // No seat_name selects the first one
+    try testing.expectEqual(p1, try selectSeat(&seats, null));
+
+    // Select by name
+    try testing.expectEqual(p2, try selectSeat(&seats, "seat2"));
+
+    // Seat not found
+    try testing.expectError(error.SeatNotFound, selectSeat(&seats, "unknown"));
+
+    // No seats available
+    try testing.expectError(error.NoSeat, selectSeat(&[_]SeatInfo{}, null));
+}
+
+test "readInput text" {
+    const testing = std.testing;
+    const allocator = testing.allocator;
+
+    const opts = Options{ .text = "hello" };
+    // We don't need a real Io for this case as it returns early
+    const text = try readInput(allocator, undefined, opts);
+    defer allocator.free(text);
+
+    try testing.expectEqualStrings("hello", text);
+}
+
+test "findSplitOffset" {
+    const testing = std.testing;
+
+    const text = "hello 😊 world"; // 😊 is 4 bytes: F0 9F 98 8A
+    // "hello " (6) + "😊" (4) + " world" (6) = 16 bytes
+
+    // Split exactly before 😊
+    try testing.expectEqual(@as(usize, 6), findSplitOffset(text, 0, 6));
+
+    // Split in the middle of 😊 should move back to before it
+    try testing.expectEqual(@as(usize, 6), findSplitOffset(text, 0, 7));
+    try testing.expectEqual(@as(usize, 6), findSplitOffset(text, 0, 8));
+    try testing.expectEqual(@as(usize, 6), findSplitOffset(text, 0, 9));
+
+    // Split after 😊
+    try testing.expectEqual(@as(usize, 10), findSplitOffset(text, 0, 10));
+
+    // Split at end
+    try testing.expectEqual(@as(usize, 16), findSplitOffset(text, 0, 20));
+
+    // Split with very small max_size should still include at least one character
+    // "😊" is at [6..10]
+    try testing.expectEqual(@as(usize, 10), findSplitOffset(text, 6, 1));
 }
