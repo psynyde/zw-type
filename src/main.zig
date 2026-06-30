@@ -345,21 +345,21 @@ test "parseOptions" {
 test "selectSeat" {
     const testing = std.testing;
 
-    var s1: u8 = 0;
-    var s2: u8 = 0;
-    const p1: *wl.Seat = @ptrCast(&s1);
-    const p2: *wl.Seat = @ptrCast(&s2);
+    var seat1: u8 = 0;
+    var seat2: u8 = 0;
+    const seat_pointer1: *wl.Seat = @ptrCast(&seat1);
+    const seat_pointer2: *wl.Seat = @ptrCast(&seat2);
 
     const seats = [_]SeatInfo{
-        .{ .name = "seat1", .seat = p1 },
-        .{ .name = "seat2", .seat = p2 },
+        .{ .name = "seat1", .seat = seat_pointer1 },
+        .{ .name = "seat2", .seat = seat_pointer2 },
     };
 
     // No seat_name selects the first one
-    try testing.expectEqual(p1, try selectSeat(&seats, null));
+    try testing.expectEqual(seat_pointer1, try selectSeat(&seats, null));
 
     // Select by name
-    try testing.expectEqual(p2, try selectSeat(&seats, "seat2"));
+    try testing.expectEqual(seat_pointer2, try selectSeat(&seats, "seat2"));
 
     // Seat not found
     try testing.expectError(error.SeatNotFound, selectSeat(&seats, "unknown"));

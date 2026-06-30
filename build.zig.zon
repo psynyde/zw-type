@@ -7,6 +7,10 @@
             .url = "git+https://github.com/ifreund/zig-wayland.git#4a150a04f76f7329e80280661355c04328369d1f",
             .hash = "wayland-0.6.0-dev-lQa1krD8AQBlMqwuhAMJjPQKXvpRByZBxxqMVAZ7yzbG",
         },
+        .zlinter = .{
+            .url = "git+https://github.com/kurtwagner/zlinter?ref=0.16.x#2a33cf21f43073cbc31b9cbab49e47744d1917c8",
+            .hash = "zlinter-0.0.1-OjQ08U0NDABfaz0oObIlqrTeX9ja1UX0S2BHyF1zWBMQ",
+        },
     },
     .paths = .{""},
     .fingerprint = 0xd48abd4d39af8fcf,

@@ -1,6 +1,8 @@
 const std = @import("std");
 const Scanner = @import("wayland").Scanner;
 
+const zlinter = @import("zlinter");
+
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -50,6 +52,21 @@ pub fn build(b: *std.Build) void {
     const run_cmd = b.addRunArtifact(exe);
     run_step.dependOn(&run_cmd.step);
     run_cmd.step.dependOn(b.getInstallStep());
+
+    const lint_cmd = b.step("lint", "Lint source code.");
+    lint_cmd.dependOn(step: {
+        var builder = zlinter.builder(b, .{});
+        builder.addRule(.{ .builtin = .field_naming }, .{});
+        builder.addRule(.{ .builtin = .declaration_naming }, .{});
+        builder.addRule(.{ .builtin = .function_naming }, .{});
+        builder.addRule(.{ .builtin = .file_naming }, .{});
+        builder.addRule(.{ .builtin = .switch_case_ordering }, .{});
+        builder.addRule(.{ .builtin = .no_unused }, .{});
+        builder.addRule(.{ .builtin = .no_deprecated }, .{});
+        builder.addRule(.{ .builtin = .require_fmt }, .{});
+        builder.addRule(.{ .builtin = .no_orelse_unreachable }, .{});
+        break :step builder.build();
+    });
 
     if (b.args) |args| {
         run_cmd.addArgs(args);
