@@ -1,8 +1,37 @@
 {
-  "wayland-0.6.0-dev-lQa1krD8AQBlMqwuhAMJjPQKXvpRByZBxxqMVAZ7yzbG": {
+  "wayland-0.7.0-dev-lQa1kl38AQC-kQolS5D4jV1GJ2rH2jv1VWHr14YLVnyn": {
     "name": "wayland",
-    "url": "git+https://github.com/ifreund/zig-wayland.git#4a150a04f76f7329e80280661355c04328369d1f",
-    "hash": "sha256-B5nA05xYm6iRDDRFC2KUbhBCtjwmApka+BcDCZRssfw=",
-    "rev": "4a150a04f76f7329e80280661355c04328369d1f"
+    "url": "git+https://codeberg.org/ifreund/zig-wayland#23839e41161de025d71ce082561ecba1c5331281",
+    "hash": "sha256-U2Mv26rJFDk7N7nEyF5meLPvYce3XWFNluvSTDbWxCg="
+  },
+  "zlinter-0.0.1-OjQ08doQDADkvkcRq2ONICvDheGl2onZzS5upWDxFNnA": {
+    "name": "zlinter",
+    "url": "git+https://github.com/kurtwagner/zlinter?ref=0.16.x#8b10b45d33c684be4f869baf95a37c282e9db750",
+    "hash": "sha256-zfDgIf4OEEp21dtVzI5HZUwAhnERPM/PTn+wmAB5vNE="
+  },
+  "zls-0.16.0-rmm5fs_JJgBG3dk5HwYK1FylE2_LMN0BYpX57tPzT-Xc": {
+    "name": "zls",
+    "url": "git+https://github.com/zigtools/zls?ref=0.16.0#494486203c3a48927f2383aa3d5ce5fca112186d",
+    "hash": "sha256-9axZ21QjQ65gmTBpTB5a1KNyV9j6mqDj8txjklmqkUE="
+  },
+  "known_folders-0.0.0-Fy-PJk3KAACzUg2us_0JvQQmod1ZA8jBt7MuoKCihq88": {
+    "name": "known_folders",
+    "url": "https://github.com/ziglibs/known-folders/archive/d6d03830968cca6b7b9f24fd97ee348346a6905d.tar.gz",
+    "hash": "sha256-sBfpyNz5TRiXqcb16gN7Vxea1ai2+/xGeItdemFb9iU="
+  },
+  "diffz-0.0.1-G2tlISzNAQCldmOcINavGmF1zdt20NFPXeM8d07jp_68": {
+    "name": "diffz",
+    "url": "https://github.com/ziglibs/diffz/archive/b39fe07e7fdbcf56e43ba2890b9f484f16969f90.tar.gz",
+    "hash": "sha256-smiZT9ymqphhUGRlJIrz5OEhL/6aTpJw7MxbzkeH1Rk="
+  },
+  "lsp_kit-0.1.0-bi_PL3IyDACfp1xdTnkiOHEok2YpPCCCJHuuOcNzjl1D": {
+    "name": "lsp_kit",
+    "url": "https://github.com/zigtools/lsp-kit/archive/b886a2b0d5cee85ecbcc3089b863f7517cc9ff7f.tar.gz",
+    "hash": "sha256-end6N/tA4NhHbFKIiRgzWX5slNFqniWTVc+JBULVvgE="
+  },
+  "N-V-__8AAOncKwEm1F9c5LrT7HMNmRMYX8-fAoqpc6YyTu9X": {
+    "name": "tracy",
+    "url": "https://github.com/wolfpld/tracy/archive/refs/tags/v0.13.1.tar.gz",
+    "hash": "sha256-fu8Rlnh1VxHuigrfyGy7t7f+9co6oyKRu/IQV/FiJ08="
   }
 }

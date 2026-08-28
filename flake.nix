@@ -3,13 +3,11 @@
   inputs = {
     zig2nix.url = "github:Cloudef/zig2nix";
     treefmt-nix.url = "github:numtide/treefmt-nix";
-    zls.url = "github:zigtools/zls/0.16.0";
   };
 
   outputs =
     {
       zig2nix,
-      zls,
       treefmt-nix,
       ...
     }:
@@ -19,7 +17,7 @@
     (flake-utils.lib.eachDefaultSystem (
       system:
       let
-        env = zig2nix.outputs.zig-env.${system} { zig = zig2nix.outputs.packages.${system}.zig-latest; };
+        env = zig2nix.outputs.zig-env.${system} { zig = zig2nix.outputs.packages.${system}.zig-0_16_0; };
         pkgs = env.pkgs;
         project = "zw-type";
         mkPackage =
@@ -72,8 +70,6 @@
           name = project;
           LSP_SERVER = "zls";
           packages = with pkgs; [
-            zls.packages.${system}.default
-
             scdoc
             pkg-config
             wayland-scanner

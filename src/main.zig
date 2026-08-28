@@ -110,6 +110,16 @@ fn imeListener(
     }
 }
 
+fn clientDeinit(client: *Client) void {
+    if (client.ime) |ime| ime.destroy();
+    if (client.input_manager) |manager| manager.destroy();
+
+    for (client.seats.items) |seat| {
+        client.allocator.free(seat.name);
+    }
+    client.seats.deinit(client.allocator);
+}
+
 fn printSeats(stdout: *std.Io.Writer, seats: []const SeatInfo, default_seat: ?*wl.Seat) !void {
     if (seats.len == 0) {
         try stdout.print("No seats found\n", .{});
@@ -220,6 +230,7 @@ pub fn main(init: std.process.Init.Minimal) !void {
     const io = threaded.io();
 
     const args = try init.args.toSlice(allocator);
+    defer allocator.free(args);
     const opts = try parseOptions(args);
 
     var stdout_buffer: [1024]u8 = undefined;
@@ -236,7 +247,7 @@ pub fn main(init: std.process.Init.Minimal) !void {
         .allocator = allocator,
         .seats = .empty,
     };
-
+    defer clientDeinit(&client);
     registry.setListener(*Client, registryListener, &client);
 
     // First roundtrip: globals
@@ -266,6 +277,7 @@ pub fn main(init: std.process.Init.Minimal) !void {
             else => return err,
         }
     };
+    defer allocator.free(text);
 
     const seat = try selectSeat(client.seats.items, opts.seat_name);
 
@@ -295,6 +307,7 @@ pub fn main(init: std.process.Init.Minimal) !void {
         const end = findSplitOffset(text, offset, max_chunk_size);
         const chunk = text[offset..end];
         const c_chunk = try allocator.dupeSentinel(u8, chunk, 0);
+        defer allocator.free(c_chunk);
 
         ime.commitString(c_chunk);
         ime.commit(client.serial);
@@ -303,9 +316,6 @@ pub fn main(init: std.process.Init.Minimal) !void {
 
         offset = end;
     }
-
-    ime.destroy();
-    input_manager.destroy();
 }
 
 test "parseOptions" {

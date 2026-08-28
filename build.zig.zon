@@ -4,12 +4,12 @@
     .minimum_zig_version = "0.16.0",
     .dependencies = .{
         .wayland = .{
-            .url = "git+https://github.com/ifreund/zig-wayland.git#4a150a04f76f7329e80280661355c04328369d1f",
-            .hash = "wayland-0.6.0-dev-lQa1krD8AQBlMqwuhAMJjPQKXvpRByZBxxqMVAZ7yzbG",
+            .url = "git+https://codeberg.org/ifreund/zig-wayland#23839e41161de025d71ce082561ecba1c5331281",
+            .hash = "wayland-0.7.0-dev-lQa1kl38AQC-kQolS5D4jV1GJ2rH2jv1VWHr14YLVnyn",
         },
         .zlinter = .{
-            .url = "git+https://github.com/kurtwagner/zlinter?ref=0.16.x#2a33cf21f43073cbc31b9cbab49e47744d1917c8",
-            .hash = "zlinter-0.0.1-OjQ08U0NDABfaz0oObIlqrTeX9ja1UX0S2BHyF1zWBMQ",
+            .url = "git+https://github.com/kurtwagner/zlinter?ref=0.16.x#8b10b45d33c684be4f869baf95a37c282e9db750",
+            .hash = "zlinter-0.0.1-OjQ08doQDADkvkcRq2ONICvDheGl2onZzS5upWDxFNnA",
         },
     },
     .paths = .{""},
